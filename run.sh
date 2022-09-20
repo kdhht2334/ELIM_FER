@@ -4,7 +4,7 @@ CUDA_VISIBLE_DEVICES=1 python main.py \
 	--model alexnet \
 	--sinkhorn 1 \
 	--relevance_weighting 1 \
-	--weight_sampling gumbel \
+	--weight_sampling gumbel-softmax \
 	--lr 5e-5 \
 	--no_domain 5 \
 	--topk 5 \

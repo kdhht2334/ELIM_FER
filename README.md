@@ -63,6 +63,10 @@ pip install -r requirements.txt
 - [x] Upload train/eval files
 
 
+### Note
+- In case of Mlp-Mixer, please refer official repository [(link)](https://github.com/google-research/vision_transformer#mlp-mixer)
+
+
 
 ### Citation
 
