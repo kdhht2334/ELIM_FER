@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul 10 19:15:13 2018
+
+@author: hwauni
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Jun 23 22:57:51 2018
+
+@author: hwauni
+"""
+import sys
+
+import cv2
+import pickle
+import numpy as np
+import time
+from random import shuffle
+from scipy.misc import imread, imresize
+from timeit import default_timer as timer
+from multiprocessing import Process, Lock, Queue
+
+class VideoMgr():
+    
+    def __init__(self, cam_id, cam_name):
+        self.cam_id = cam_id
+        self.cam_name = cam_name
+        self.cam_url = ''             
+
+    def run(self, config, cam_url, queue, is_ready):        
+        cam = cv2.VideoCapture(cam_url)        
+        if not cam.isOpened():
+            print('isOpend Invalid')
+            print(cam_url)
+            raise IOError(("Couldn't open video file or webcam. If you're "
+            "trying to open a webcam, make sure you video_path is an integer!"))
+        cam.set(cv2.CAP_PROP_FRAME_WIDTH, int(config['width']))
+        cam.set(cv2.CAP_PROP_FRAME_HEIGHT, int(config['height']))        
+        cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*(config['invformat'])))       
+        #cam.set(cv2.CAP_PROP_EXPOSURE, -7.5)
+        
+        # Compute aspect ratio of video
+        cam_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+        cam_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        cam_ar = cam_width/cam_height
+        cam_fps = float(cam.get(cv2.CAP_PROP_FPS))
+        cam_format = cam.get(cv2.CAP_PROP_FOURCC)
+        cam_exposure = cam.get(cv2.CAP_PROP_EXPOSURE)
+        
+        print("[VM] Camera Info(id=%s" % self.cam_id, "name=%s" % self.cam_name, "width=%f" % cam_width, 
+              "height=%f" % cam_height, "fps=%f" % cam_fps, "exposure=%f" % cam_exposure, "format=%f)" % cam_format)    
+    
+        curtime_str = time.strftime('%H%M%S')
+        if config['videosave'] == 'on':                           
+            outvfilename = config['outvpath'] + curtime_str + '_' + config['outvfilename']
+            fourcc = cv2.VideoWriter_fourcc(*config['outvformat'])
+            out = cv2.VideoWriter(outvfilename, fourcc, cam_fps, (cam_width, cam_height))                 
+        
+        accum_time = 0
+        curr_fps = 0
+        fps = "FPS: ??"
+        prev_time = timer()
+        count = 0
+        
+        while(True):
+            ret, orig_image = cam.read()       
+               
+            if ret:                
+                # Calculate FPS
+                # This computes FPS for everything, not just the model's execution 
+                # which may or may not be what you want
+                curr_time = timer()
+                exec_time = curr_time - prev_time
+                prev_time = curr_time
+                accum_time = accum_time + exec_time
+                curr_fps = curr_fps + 1
+                if accum_time > 1:
+                    accum_time = accum_time - 1
+                    fps = "FPS: " + str(curr_fps)
+                    curr_fps = 0                
+                
+                if is_ready.value:
+                    #orig_image = cv2.resize(orig_image, (640,360))                    
+                    queue.put((self.cam_id, self.cam_name, orig_image))
+                
+                if config['camshow'] == 'on':
+                    cv2.putText(orig_image, fps, (0,100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 1)
+                    cv2.imshow(self.cam_name, orig_image)                                          
+                if config['videosave'] == 'on':                    
+                    out.write(orig_image)
+                if config['imagesave'] == 'on':
+                    if count == 0 or curr_fps % int(config['outirate']) == 0:
+                        outifilename = config['outipath'] + curtime_str + '_' + str(count) + '_' + config['outifilename']
+                        cv2.imwrite(outifilename, orig_image)                
+                        count = count + 1
+                
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break             
+        if config['videosave'] == 'on':          
+            out.release()
+        cv2.destroyAllWindows()
+        cam.release()
