@@ -11,7 +11,7 @@
 CVIP Lab, Inha University
 
 <p align="center">
-<img src="https://github.com/kdhht2334/ELIM_FER/blob/main/pics/main.png" height="350", width="300"/>
+<img src="https://github.com/kdhht2334/ELIM_FER/blob/main/pics/main.png" height="350", width="3000"/>
 </p>
 
 - Real-time demo with pre-trained weights
