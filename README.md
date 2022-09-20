@@ -14,8 +14,70 @@ CVIP Lab, Inha University
 <img src="https://github.com/kdhht2334/ELIM_FER/blob/main/pics/main.png" height="200", width="3000"/>
 </p>
 
+### Update
+
+- __2022.09.20__: Initialize this repository.
+
+
+### Requirements
+
+- Python (>=3.8)
+- PyTorch (>=1.7.1)
+- pretrainedmodels (>=0.7.4)
+- [Wandb](https://wandb.ai/)
+- [Fabulous](https://github.com/jart/fabulous) (terminal color toolkit)
+
+To install all dependencies, do this.
+
+```
+pip install -r requirements.txt
+```
+
+## Datasets
+
+1. Download four public benchmarks for training and evaluation (please download after agreement accepted).
+
+  - [AffectNet](http://mohammadmahoor.com/affectnet/)
+  - [Aff-wild](https://ibug.doc.ic.ac.uk/resources/first-affect-wild-challenge/) 
+  - [Aff-wild2](https://ibug.doc.ic.ac.uk/resources/aff-wild2/)
+  - [AFEW-VA](https://ibug.doc.ic.ac.uk/resources/afew-va-database/)
+ 
+ (For more details visit [website](https://ibug.doc.ic.ac.uk/))
+
+2. Follow preprocessing rules for each dataset by referring pytorch official [custom dataset tutorial](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html).
+
+
+### Demo
+
+- Do to `demo` folder, and then feel free to use.
 - Real-time demo with pre-trained weights
 <p align="center">
 <img src="https://github.com/kdhht2334/ELIM_FER/blob/main/demo/demo_vid.gif" height="320"/>
 </p>
+
+
+### TODO
+- [ ] Refactoring
+- [ ] Upload pre-trained model weights
+- [x] Upload demo files
+- [x] Upload train/eval files
+
+
+
+### Citation
+
+If our work is useful for your work, then please consider citing below bibtex:
+
+
+	@inproceedings{kim2022elim,
+    	author = {Kim, Daeha and Song, Byung Cheol},
+        title = {Optimal Transport-based Identity Matching for Identity-invariant Facial Expression Recognition},
+        booktitle = {NeurIPS},
+        year = {2022}
+    }
+
+
+### Contact
+If you have any questions, feel free to contact me at `kdhht5022@gmail.com`.
+
 
