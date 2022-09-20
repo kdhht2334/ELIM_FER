@@ -6,6 +6,14 @@
 
 > **Optimal Transport-based Identity Matching for Identity-invariant Facial Expression Recognition (NeurIPS 2022)**<br>
 
+[Daeha Kim](https://scholar.google.co.kr/citations?user=PVt7f0YAAAAJ&hl=ko), [Byung Cheol Song](https://scholar.google.co.kr/citations?user=yo-cOtMAAAAJ&hl=ko)
+
+CVIP Lab, Inha University
+
+<p align="center">
+<img src="https://github.com/kdhht2334/ELIM_FER/blob/main/pics/main.png" height="350", width="300"/>
+</p>
+
 - Real-time demo with pre-trained weights
 <p align="center">
 <img src="https://github.com/kdhht2334/ELIM_FER/blob/main/demo/demo_vid.gif" height="320"/>
