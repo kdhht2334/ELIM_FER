@@ -33,7 +33,7 @@ To install all dependencies, do this.
 pip install -r requirements.txt
 ```
 
-## Datasets
+### Datasets
 
 1. Download four public benchmarks for training and evaluation (please download after agreement accepted).
 
@@ -70,7 +70,7 @@ If our work is useful for your work, then please consider citing below bibtex:
 
 
 	@inproceedings{kim2022elim,
-    	author = {Kim, Daeha and Song, Byung Cheol},
+        author = {Kim, Daeha and Song, Byung Cheol},
         title = {Optimal Transport-based Identity Matching for Identity-invariant Facial Expression Recognition},
         booktitle = {NeurIPS},
         year = {2022}

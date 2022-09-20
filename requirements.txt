@@ -1,0 +1,6 @@
+tqdm
+torch
+torchvision
+fabulous
+wandb
+pretrainedmodels
