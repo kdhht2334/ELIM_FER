@@ -102,6 +102,7 @@ async def async_handle_video(camInfo):
                     cv2.putText(orig_image, 'Sad', (85, 337), cv2.FONT_HERSHEY_SIMPLEX, .75, (255,255,255), 2)
                     
                     cv2.line(orig_image, (175+int(valence_value*150),275-int(arousal_value*150)), (175+int(valence_value*150),275-int(arousal_value*150)), (0,255,0), 7)  # point
+#                    cv2.line(orig_image, (120+int(valence_value*150),320-int(arousal_value*150)), (120+int(valence_value*150),320-int(arousal_value*150)), (0,255,0), 7)  # point
                     
                     cv2.putText(orig_image, 'Valence: {0:.2f}'.format(valence_value), (5, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
                     cv2.putText(orig_image, 'Arousal: {0:.2f}'.format(arousal_value), (5, 55), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
@@ -158,7 +159,8 @@ async def handle_video_analysis():
         global valence, arousal
         global fd_signal
         
-        offset_v, offset_a = 0.55, 0.25  # manual offset to origin alighment
+#        offset_v, offset_a = 0.55, 0.25  # manual offset to origin alighment
+        offset_v, offset_a = 0.25, 0.05  # manual offset to origin alighment
         if do_hand_gesture == 1:
             
             input_img = image_batch[-1]
@@ -311,9 +313,9 @@ class FER_INT_ALG():
         global encoder, regressor, task_header
         
         encoder, regressor, task_header = nn_output()
-        encoder.load_state_dict(torch.load('weights/enc.t7'), strict=False)
-        regressor.load_state_dict(torch.load('weights/reg.t7'), strict=False)
-        task_header.load_state_dict(torch.load('weights/header.t7'), strict=False)
+        encoder.load_state_dict(torch.load('weights/enc2.t7'), strict=False)
+        regressor.load_state_dict(torch.load('weights/reg2.t7'), strict=False)
+        task_header.load_state_dict(torch.load('weights/header2.t7'), strict=False)
         
         global emotion_list
         global emot_region
