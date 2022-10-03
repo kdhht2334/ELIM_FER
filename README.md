@@ -1,10 +1,14 @@
 # ELIM_FER
 
+> **Optimal Transport-based Identity Matching for Identity-invariant Facial Expression Recognition (NeurIPS 2022)**<br>
+
+> [PAPER](https://arxiv.org/abs/2209.12172) | [DEMO](https://github.com/kdhht2334/ELIM_FER/tree/main/demo)
+
 <a href="https://releases.ubuntu.com/16.04/"><img alt="Ubuntu" src="https://img.shields.io/badge/Ubuntu-16.04-green"></a>
 <a href="https://www.python.org/downloads/release/python-370/"><img alt="PyThon" src="https://img.shields.io/badge/Python-v3.8-blue"></a>
 <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a>
 
-> **Optimal Transport-based Identity Matching for Identity-invariant Facial Expression Recognition (NeurIPS 2022)**<br>
+
 
 [Daeha Kim](https://scholar.google.co.kr/citations?user=PVt7f0YAAAAJ&hl=ko), [Byung Cheol Song](https://scholar.google.co.kr/citations?user=yo-cOtMAAAAJ&hl=ko)
 
@@ -73,11 +77,11 @@ pip install -r requirements.txt
 If our work is useful for your work, then please consider citing below bibtex:
 
 
-	@inproceedings{kim2022elim,
+	@misc{kim2022elim,
         author = {Kim, Daeha and Song, Byung Cheol},
         title = {Optimal Transport-based Identity Matching for Identity-invariant Facial Expression Recognition},
-        booktitle = {NeurIPS},
-        year = {2022}
+        Year = {2022},
+        Eprint = {arXiv:2209.12172}
     }
 
 
