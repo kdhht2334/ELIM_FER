@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 12345 main.py \
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 12474 main.py \
     --project_title aff-wild2 \
     --method elim \
     --e_lr 5e-5 \
@@ -6,14 +6,14 @@ CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 12345 ma
     --no_domain 10 \
     --topk 10 \
     --domain_sampling none \
-    --online_tracker 1 \
-    --tr_batch_size 512 \
+    --online_tracker 0 \
+    --tr_batch_size 16 \
     --ermfc_input_dim 512 \
     --ermfc_output_dim 2 \
     --warmup_coef1 5 \
     --warmup_coef2 50 \
-    --model alexnet \
+    --model resnet18 \
     --save_path /media/backup1/personal_kdh/data/aff_wild2/checkpoint/TEST/ \
     --data_path /media/backup1/personal_kdh/data/aff_wild2/ \
     --vit_path /mlpmixer_checkpoint/INet_1K/Mixer-B_16.npz \
-    --print_check 250
+    --print_check 15

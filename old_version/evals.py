@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from metrics import metric_computation
 from fabulous.color import fg256
 
+
 def interm_evaluation(args, model, metric, weights_name, loaders, current, cnt):
     
     use_gpu = torch.cuda.is_available()
