@@ -61,7 +61,7 @@ pip install -r requirements.txt
 
 
 ### TODO
-- [ ] Refactoring
+- [x] Refactoring
 - [ ] Upload pre-trained model weights
 - [x] Upload demo files
 - [x] Upload train/eval files
