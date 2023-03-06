@@ -123,6 +123,34 @@ class ERM_FC(nn.Module):
             x = torch.clamp(x, min=-1., max=1.)
             return F.tanh(x)
 
+class ERM_FC_Category(nn.Module):
+
+    def __init__(self, erm_input_dim, erm_output_dim):
+        super(ERM_FC, self).__init__()
+
+        self.erm_input_dim = erm_input_dim
+        self.erm_hidden_dim = self.erm_input_dim * 20  #10
+        self.erm_output_dim = erm_output_dim
+        self.linear1 = nn.Linear(self.erm_input_dim, self.erm_hidden_dim)
+        self.linear2 = nn.Linear(self.erm_hidden_dim, self.erm_output_dim)
+        self.bn1 = nn.BatchNorm1d(self.erm_hidden_dim, affine=True)
+
+        self.layer_blocks = nn.Sequential(
+            self.linear1,
+            self.bn1,
+            nn.ReLU(inplace=True),
+            self.linear2,
+            #nn.Sigmoid(),
+        )
+
+    def forward(self, inputs, train=True):
+        if train:
+            return self.layer_blocks(inputs)
+        else:
+            x = self.layer_blocks(inputs)
+            output = torch.clamp(x, min=-1., max=1.)
+            return output
+
 
 def encoder_AL():
     encoder = Encoder_AL()
@@ -140,6 +168,9 @@ def regressor_R18(latent_dim):
 
 def load_ERM_FC(erm_input_dim, erm_output_dim):
     erm_fc = ERM_FC(erm_input_dim, erm_output_dim)
+    return erm_fc
+def load_ERM_FC_Category(erm_input_dim, erm_output_dim):
+    erm_fc = ERM_FC_Category(erm_input_dim, erm_output_dim)
     return erm_fc
 
 
