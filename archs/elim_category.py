@@ -11,7 +11,7 @@ from numpy.random import default_rng
 from tqdm import tqdm
 
 from . import BasicTask
-from common.dataset_utils import FaceDataset
+from common.dataset_utils import FaceDataset, FaceDataset_Category
 from common.ops import convert_to_ddp
 from common.metrics import metric_computation
 from common.utils import LENGTH_CHECK, pcc_ccc_loss, gumbel_softmax_sample, Sinkhorn_Knopp, Cross_Attention
@@ -29,7 +29,7 @@ class ELIM_Category(BasicTask):
         training_path = opt.data_path+'train/training.csv'
         validation_path = opt.data_path+'val/validation.csv'
 
-        face_dataset = FaceDataset(csv_file=training_path,
+        face_dataset = FaceDataset_Category(csv_file=training_path,
                                    root_dir=opt.data_path+'train/',
                                    transform=transforms.Compose([
                                        transforms.Resize(256), transforms.RandomCrop(size=224),
@@ -38,7 +38,7 @@ class ELIM_Category(BasicTask):
                                        transforms.Normalize((0.485, 0.456, 0.406),(0.229, 0.224, 0.225))
                                    ]), inFolder=None)
     
-        face_dataset_val = FaceDataset(csv_file=validation_path,
+        face_dataset_val = FaceDataset_Category(csv_file=validation_path,
                                        root_dir=opt.data_path+'val/',
                                        transform=transforms.Compose([
                                            transforms.Resize(256), transforms.CenterCrop(size=224),
@@ -114,11 +114,15 @@ class ELIM_Category(BasicTask):
         with torch.no_grad():
             for _, data_i in enumerate(self.val_loader):
     
-                data, emotions = data_i['image'], data_i['va']
-                valence = np.expand_dims(np.asarray(emotions[0]), axis=1)
-                arousal = np.expand_dims(np.asarray(emotions[1]), axis=1)
-                emo_np = np.concatenate([valence, arousal], axis=1)
-                emotions = torch.from_numpy(emo_np).float()
+                elist = []
+                data, emotions = data_i['image'], data_i['exp']
+
+                for i in range(emotions.size(0)):  # pre-processing for 7-class classification
+                    if emotions[i] < 7:
+                        elist.append(i)
+
+                data     = data[elist]
+                emotions = emotions[elist]
 
                 inputs, correct_labels = Variable(data.cuda()), Variable(emotions.cuda())
 
@@ -204,6 +208,8 @@ class ELIM_Category(BasicTask):
         self.regressor.train()
         self.ermfc.train()
 
+        age_list = ['18', '30', '40', '50', '60', '85']  # you can arbitrary set
+
         for epoch in range(opt.num_epoch):
             print('epoch ' + str(epoch) + '/' + str(opt.num_epoch-1))
 
@@ -218,20 +224,23 @@ class ELIM_Category(BasicTask):
                 for reg_param_group in self.r_opt.param_groups:
                     bb = reg_param_group['lr']
 
-                data, emotions, path = data_i['image'], data_i['va'], data_i['path']
-                valence = np.expand_dims(np.asarray(emotions[0]), axis=1)
-                arousal = np.expand_dims(np.asarray(emotions[1]), axis=1)
-                emo_np = np.concatenate([valence, arousal], axis=1)
-                emotions = torch.from_numpy(emo_np).float()
-                path = np.asarray(path)
+                elist = []
+                data, emotions, age = data_i['image'], data_i['exp'], data_i['age']
 
-                path_list = []
-                for i in range(len(path)): path_list.append(path[i].split('/')[0])
+                for i in range(emotions.size(0)):  # pre-processing for 7-class classification
+                    if emotions[i] < 7:
+                        elist.append(i)
 
-                ll_sorted = sorted(set(path_list))
+                data     = data[elist]
+                emotions = emotions[elist]
+                age      = age[elist]
+
+                age = np.asarray(age)
+
                 ll_dictionary = dict()
-                for k in range(len(ll_sorted)):
-                    ll_dictionary.update([[ll_sorted[k], [i for i, j in enumerate(path) if j.split('/')[0] == ll_sorted[k]] ]])
+                for k in range(len(age_list)):  # sorting by each age group
+                    if k > 0:
+                        ll_dictionary.update([[ age_list[k], [i for i,j in enumerate(age) if int(age_list[k-1])<=j and j<int(age_list[k])] ]])
         
                 inputs, correct_labels = Variable(data.cuda()), Variable(emotions.cuda())
 
