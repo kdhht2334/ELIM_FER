@@ -1,6 +1,6 @@
-CUDA_VISIBLE_DEVICES=$1 python -m torch.distributed.launch --master_port $2 main.py \
+CUDA_VISIBLE_DEVICES=$2 python -m torch.distributed.launch --master_port $3 main.py \
     --project_title aff-wild2 \
-    --method elim \
+    --method $1 \
     --e_lr 5e-5 \
     --r_lr 5e-5 \
     --no_domain 10 \

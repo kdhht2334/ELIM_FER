@@ -52,12 +52,15 @@ pip install -r requirements.txt
 
 ### Training
 
-Just run below script!
+Just run the below script!
 ```
-./run.sh <gpu_no> <port_no> 
+chmod 755 run.sh
+./run.sh <method> <gpu_no> <port_no> 
 ```
+- `<method>`: `elim` or `elim_category`
 - `<gpu_no>`: GPU number such as 0 (or 0, 1 etc.)
 - `<port_no>`: port number to clarify workers (e.g., 12345)
+* __Note__: If you want to try 7-class task (e.g., AffectNet), add `age_script` folder to your train or val. script and turn on `elim_category` option.
 
 ### Evaluation
 - Evaluation is performed automatically at each `print_check` point in training phase.
