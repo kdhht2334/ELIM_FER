@@ -1,6 +1,7 @@
 import os, argparse
 from time  import gmtime, strftime
-from .elim import ELIM
+from .elim          import ELIM
+from .elim_age      import ELIM_Age
 from .elim_category import ELIM_Category
 
 from fabulous.color import fg256
@@ -12,6 +13,8 @@ class FER(object):
         self.opt = opt
         if opt.method == 'elim':
             self.fer = ELIM(opt)
+        elif opt.method == 'elim_age':
+            self.fer = ELIM_Age(opt)
         elif opt.method == 'elim_category':
             self.fer = ELIM_Category(opt)
         self.fer.set_loader()
@@ -23,7 +26,7 @@ class FER(object):
 
         # DEFAULT SETTINGS
         app.add_argument("--project_title", type=str, default='ibfer_afew-va', help='Title for wandb.')
-        app.add_argument("--method", type=str, default='elim', choices=['elim', 'elim_category'])
+        app.add_argument("--method", type=str, default='elim', choices=['elim', 'elim_age', 'elim_category'])
         app.add_argument("--freq", type=int, default=1, help='Saving frequency.')
         app.add_argument("--online_tracker", type=int, default=1, help='On(1) or Off(0).')
         app.add_argument("--dataset", type=str, default='aff_wild2', help='aff_wild aff_wild2 / afew_va.')

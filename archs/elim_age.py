@@ -11,7 +11,7 @@ from numpy.random import default_rng
 from tqdm import tqdm
 
 from . import BasicTask
-from common.dataset_utils import FaceDataset, FaceDataset_Category
+from common.dataset_utils import FaceDataset_AffectNet
 from common.ops import convert_to_ddp
 from common.metrics import metric_computation
 from common.utils import LENGTH_CHECK, pcc_ccc_loss, gumbel_softmax_sample, Sinkhorn_Knopp, Cross_Attention
@@ -21,7 +21,7 @@ import wandb
 from fabulous.color import fg256
 
 
-class ELIM_Category(BasicTask):
+class ELIM_Age(BasicTask):
 
     def set_loader(self):
         opt = self.opt
@@ -29,7 +29,7 @@ class ELIM_Category(BasicTask):
         training_path = opt.data_path+'train/training.csv'
         validation_path = opt.data_path+'val/validation.csv'
 
-        face_dataset = FaceDataset_Category(csv_file=training_path,
+        face_dataset = FaceDataset_AffectNet(csv_file=training_path,
                                    root_dir=opt.data_path+'train/',
                                    transform=transforms.Compose([
                                        transforms.Resize(256), transforms.RandomCrop(size=224),
@@ -38,7 +38,7 @@ class ELIM_Category(BasicTask):
                                        transforms.Normalize((0.485, 0.456, 0.406),(0.229, 0.224, 0.225))
                                    ]), inFolder=None)
     
-        face_dataset_val = FaceDataset_Category(csv_file=validation_path,
+        face_dataset_val = FaceDataset_AffectNet(csv_file=validation_path,
                                        root_dir=opt.data_path+'val/',
                                        transform=transforms.Compose([
                                            transforms.Resize(256), transforms.CenterCrop(size=224),
@@ -57,7 +57,7 @@ class ELIM_Category(BasicTask):
     def set_model(self):
         opt = self.opt
 
-        from common.elim_networks import encoder_AL, encoder_R18, regressor_AL, regressor_R18, load_ERM_FC, load_ERM_FC_Category
+        from common.elim_networks import encoder_AL, encoder_R18, regressor_AL, regressor_R18, load_ERM_FC
         from common.attention_module import load_Cross_Attention
         if opt.model == 'alexnet':
             print(fg256("yellow", '[network] AlexNet loaded.'))
@@ -70,12 +70,12 @@ class ELIM_Category(BasicTask):
         elif opt.model == 'mlpmixer':
             print(fg256("yellow", '[network] Mlp-Mixer loaded.'))
             config = CONFIGS['Mixer-B_16']
-            encoder = MlpMixer(config, img_size=224, num_classes=7, patch_size=16, latent_dim=opt.ermfc_input_dim, zero_head=True).cuda()
+            encoder = MlpMixer(config, img_size=224, num_classes=2, patch_size=16, latent_dim=opt.ermfc_input_dim, zero_head=True).cuda()
             encoder.load_from(np.load(opt.vit_path))
             regressor    = regressor_AL(opt.ermfc_input_dim).cuda()
 
-        ermfc = load_ERM_FC_Category(opt.ermfc_input_dim, 7).cuda()  # `category` version of ermfc
-        cha   = load_Cross_Attention(7).cuda()
+        ermfc = load_ERM_FC(opt.ermfc_input_dim, opt.ermfc_output_dim).cuda()
+        cha   = load_Cross_Attention(opt.ermfc_input_dim).cuda()
 
         e_opt = torch.optim.Adam(encoder.parameters(),     lr = opt.e_lr,      betas = (0.5, 0.99))
         m_opt = torch.optim.Adam(ermfc.parameters(),       lr = 0.2*opt.e_lr,  betas = (0.5, 0.99))
@@ -110,19 +110,14 @@ class ELIM_Category(BasicTask):
         rmse_v, rmse_a = 0., 0.
         prmse_v, prmse_a = 0., 0.
         inputs_list, all_z_list, scores_list, labels_list = [], [], [], []
-        acc_list = []
         with torch.no_grad():
             for _, data_i in enumerate(self.val_loader):
     
-                elist = []
-                data, emotions = data_i['image'], data_i['exp']
-
-                for i in range(emotions.size(0)):  # pre-processing for 7-class classification
-                    if emotions[i] < 7:
-                        elist.append(i)
-
-                data     = data[elist]
-                emotions = emotions[elist]
+                data, emotions = data_i['image'], data_i['va']
+                valence = np.expand_dims(np.asarray(emotions[0]), axis=1)
+                arousal = np.expand_dims(np.asarray(emotions[1]), axis=1)
+                emo_np = np.concatenate([valence, arousal], axis=1)
+                emotions = torch.from_numpy(emo_np).float()
 
                 inputs, correct_labels = Variable(data.cuda()), Variable(emotions.cuda())
 
@@ -133,36 +128,15 @@ class ELIM_Category(BasicTask):
                     all_z = self.regressor(self.encoder(inputs))
                     scores = self.ermfc(all_z)
 
-                # ---
-                # Test-time adaptation (optional)
-                # ---
-                proto_feats = torch.zeros((opt.erm_output_dim, all_z.size(1))).cuda()
-                for i in range(opt.erm_output_dim):
-                    proto_feats[i] = all_z[correct_labels==i].mean(dim=0, keepdims=True)  # shape: [classes, latent_dim]
-
-                threshold = 0.2
-                probs, indexes = torch.topk(F.softmax(output, 1), 2)  # shape: [batch, 2]
-                for i in range(scores.size(0)):
-                    if torch.abs(probs[i][0] - probs[i][1]) < threshold:
-                        n1 = torch.norm(all_z[i] - proto_feats[indexes[i][0]], p=1)
-                        n2 = torch.norm(all_z[i] - proto_feats[indexes[i][1]], p=1)
-                        if n1 < n2:
-                            ind = indexes[i][0]
-                        else:
-                            ind = indexes[i][1]
-                    else:
-                        ind = indexes[i][0]
-
-                    acc_list.append((ind == correct_labels[i]).long().sum().cpu().detach().numpy())
-
-#                _, indexes = torch.topk(F.softmax(output, 1), 1)
-#                acc_list.append((indexes == correct_labels).long().sum().cpu().detach().numpy())
-
                 inputs_list.append(inputs.detach().cpu().numpy())
                 all_z_list.append(all_z.detach().cpu().numpy())
                 scores_list.append(scores.detach().cpu().numpy())
                 labels_list.append(correct_labels.detach().cpu().numpy())
     
+                RMSE_valence = MSE(scores[:,0], correct_labels[:,0])**0.5
+                RMSE_arousal = MSE(scores[:,1], correct_labels[:,1])**0.5
+    
+                rmse_v += RMSE_valence.item(); rmse_a += RMSE_arousal.item()
                 cnt = cnt + 1
 
         if n_iter % opt.print_check == 0:
@@ -179,7 +153,9 @@ class ELIM_Category(BasicTask):
                 inputs_th = np.concatenate(inputs_list)
                 np.save(opt.save_path+'eval_inputs.npy', inputs_th)
 
-        final_accuracy = np.mean(acc_list)
+
+        PCC_v, PCC_a, CCC_v, CCC_a, SAGR_v, SAGR_a, final_rmse_v, final_rmse_a = \
+                metric_computation([rmse_v,rmse_a], scores_list, labels_list, cnt)
     
         # write results to log file
         if n_iter == opt.print_check:
@@ -187,7 +163,18 @@ class ELIM_Category(BasicTask):
                 f.writelines(['{}\n\n'.format(opt)])
 
         with open(current_dir+'/log/'+current_time+'.txt', 'a') as f:
-            f.writelines(['\nItr: \t{},\n Acc: \t{}\n\n'.format(n_iter, final_accuracy)])
+            f.writelines(['Itr:  \t {}, \
+                    \nPCC:  \t{}|\t {}, \
+                    \nCCC:  \t{}|\t {}, \
+                    \nSAGR: \t{}|\t {}, \
+                    \nRMSE: \t{}|\t {}\n\n'
+                .format(
+                    n_iter,
+                    PCC_v[0,1],   PCC_a[0,1],
+                    CCC_v[0,1],   CCC_a[0,1],
+                    SAGR_v,       SAGR_a,
+                    final_rmse_v, final_rmse_a,
+            )])
 
 
     def train(self, current_info):
@@ -224,23 +211,16 @@ class ELIM_Category(BasicTask):
                 for reg_param_group in self.r_opt.param_groups:
                     bb = reg_param_group['lr']
 
-                elist = []
-                data, emotions, age = data_i['image'], data_i['exp'], data_i['age']
-
-                for i in range(emotions.size(0)):  # pre-processing for 7-class classification
-                    if emotions[i] < 7:
-                        elist.append(i)
-
-                data     = data[elist]
-                emotions = emotions[elist]
-                age      = age[elist]
-
+                data, emotions, age = data_i['image'], data_i['va'], data_i['age']
+                valence = np.expand_dims(np.asarray(emotions[0]), axis=1)
+                arousal = np.expand_dims(np.asarray(emotions[1]), axis=1)
+                emo_np = np.concatenate([valence, arousal], axis=1)
+                emotions = torch.from_numpy(emo_np).float()
                 age = np.asarray(age)
 
                 ll_dictionary = dict()
                 for k in range(len(age_list)):  # sort by each age group
-                    if k > 0:
-                        ll_dictionary.update([[ age_list[k], [i for i,j in enumerate(age) if int(age_list[k-1])<=j and j<int(age_list[k])] ]])
+                    ll_dictionary.update([[ age_list[k], [i for i,j in enumerate(age) if int(age_list[k-1]<=j and j<int(age_list[k])] ]])
         
                 inputs, correct_labels = Variable(data.cuda()), Variable(emotions.cuda())
 
@@ -255,11 +235,16 @@ class ELIM_Category(BasicTask):
                     latent_feats = self.regressor(self.encoder(inputs))
                     scores = self.ermfc(latent_feats)
 
+                MSE_v = MSE(scores[:,0], correct_labels[:,0])
+                MSE_a = MSE(scores[:,1], correct_labels[:,1])
+    
                 self.e_opt.zero_grad()
                 self.r_opt.zero_grad()
                 self.m_opt.zero_grad()
 
-                loss = F.cross_entropy(scores, correct_labels)
+                pcc_loss, ccc_loss, ccc_v, ccc_a = pcc_ccc_loss(correct_labels, scores)
+
+                loss = (MSE_v + MSE_a) + 0.5 * (pcc_loss + ccc_loss)
                 loss.backward(retain_graph=True)
     
                 self.e_opt.step()
@@ -350,12 +335,12 @@ class ELIM_Category(BasicTask):
                         if usr_idx == domain_id_list[0]:
                             erm_loss = 0.
                             outputs = self.ermfc(aaa).float()
-                            erm_loss = F.cross_entropy(outputs, label_dict[usr_idx])
+                            erm_loss = MSE(outputs, label_dict[usr_idx])
                         else:
                             upper = aaa - domain_shift[nnn-1][0]
                             lower = upper.pow(2).sum(dim=1) / opt.ermfc_input_dim
                             outputs = self.ermfc( upper / (torch.sqrt(lower.unsqueeze(1))+opt.epsilon) ).float()
-                            erm_loss = F.cross_entropy(outputs, label_dict[usr_idx])
+                            erm_loss = MSE(outputs, label_dict[usr_idx])
                         total_erm_loss += erm_loss
     
                     total_loss = 0.5 * total_erm_loss
@@ -380,7 +365,8 @@ class ELIM_Category(BasicTask):
                             "loss": loss.item(),
                             "ERM loss": total_erm_loss.item(),
                             "Enc_lr": aa, "Reg_lr": bb,
-                            "epoch": epoch
+                            "epoch": epoch, "ccc_v": ccc_v.item(), "ccc_a": ccc_a.item(),
+                            "RMSE (v)": MSE_v.item(), "RMSE (a)": MSE_a.item(),
                         })
    
                 if n_iter % opt.print_check == 0 and n_iter > 0:
